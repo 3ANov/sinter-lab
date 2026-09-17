@@ -1,0 +1,9 @@
+asgiref==3.12.1
+Django==5.2.17
+et_xmlfile==2.0.0
+narwhals==2.26.0
+openpyxl==3.1.5
+packaging==26.3
+plotly==6.9.0
+sqlparse==0.6.0
+tzdata==2026.4

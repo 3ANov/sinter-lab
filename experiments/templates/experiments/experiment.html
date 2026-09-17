@@ -1,0 +1,27 @@
+{% extends "experiments/base.html" %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="h2">Лаборатория спекания</h1>
+    <p class="text-secondary mb-0">Стартовый проект · демонстрационные данные нагрева</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'experiments:export_excel' %}">Скачать Excel</a>
+</div>
+<section class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <h2 class="h5">Температурный профиль</h2>
+    {{ chart|safe }}
+  </div>
+</section>
+<section class="card border-0 shadow-sm">
+  <div class="card-body">
+    <h2 class="h5">Данные графика</h2>
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead><tr><th scope="col">Время, мин</th><th scope="col">Температура, °C</th></tr></thead>
+        <tbody>{% for time, temperature in rows %}<tr><td>{{ time }}</td><td>{{ temperature }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
