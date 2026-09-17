@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.idea/
+.vscode/
+staticfiles/
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+# db.sqlite3 is intentionally tracked.

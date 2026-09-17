@@ -1,0 +1,11 @@
+services:
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-development-only-sinter-lab-key}
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,[::1]
