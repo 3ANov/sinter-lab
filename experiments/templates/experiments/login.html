@@ -1,6 +1,29 @@
 {% extends "experiments/base.html" %}
 {% block title %}Вход · Sinter Lab{% endblock %}
 {% block content %}
-<h1 class="h2">Вход</h1>
-<p>Страница входа будет подключена при настройке авторизации.</p>
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h2 mb-4">Вход</h1>
+        {% if form.errors %}
+          <div class="alert alert-danger" role="alert">Не удалось войти. Проверьте логин и пароль.</div>
+        {% endif %}
+        <form method="post" action="{% url 'experiments:login' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next }}">
+          <div class="mb-3">
+            <label for="id_username" class="form-label">Логин</label>
+            <input type="text" name="username" id="id_username" class="form-control" value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" maxlength="150" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label for="id_password" class="form-label">Пароль</label>
+            <input type="password" name="password" id="id_password" class="form-control" autocomplete="current-password" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Войти</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
