@@ -12,7 +12,20 @@
   <nav class="navbar bg-white border-bottom mb-4">
     <div class="container">
       <a class="navbar-brand fw-bold" href="{% url 'experiments:index' %}">Sinter Lab</a>
-      <a class="btn btn-outline-secondary btn-sm" href="{% url 'admin:index' %}">Администрирование</a>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        {% if user.is_authenticated %}
+          <span class="text-muted">{{ user.get_username }}</span>
+          {% if user.is_staff %}
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'admin:index' %}">Администрирование</a>
+          {% endif %}
+          <form method="post" action="{% url 'experiments:logout' %}" class="m-0">
+            {% csrf_token %}
+            <button class="btn btn-outline-secondary btn-sm" type="submit">Выйти</button>
+          </form>
+        {% else %}
+          <a class="btn btn-primary btn-sm" href="{% url 'experiments:login' %}">Войти</a>
+        {% endif %}
+      </div>
     </div>
   </nav>
   <main class="container pb-5">{% block content %}{% endblock %}</main>
