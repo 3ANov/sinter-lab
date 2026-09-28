@@ -40,3 +40,60 @@ class CoefficientSet(models.Model):
     def __str__(self):
         return f'{self.material}, версия {self.version}'
 
+
+class Experiment(models.Model):
+    researcher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='experiments', verbose_name='Исследователь')
+    coefficients = models.ForeignKey(CoefficientSet, on_delete=models.PROTECT, related_name='experiments', verbose_name='Набор коэффициентов')
+    title = models.CharField('Название', max_length=255)
+    pressure_min = models.DecimalField('Минимальное давление, атм', max_digits=12, decimal_places=6, validators=[POSITIVE])
+    pressure_max = models.DecimalField('Максимальное давление, атм', max_digits=12, decimal_places=6, validators=[POSITIVE])
+    pressure_step = models.DecimalField('Шаг давления, атм', max_digits=12, decimal_places=6, validators=[POSITIVE])
+    temperature_min = models.DecimalField('Минимальная температура, °C', max_digits=12, decimal_places=6, validators=[POSITIVE])
+    temperature_max = models.DecimalField('Максимальная температура, °C', max_digits=12, decimal_places=6, validators=[POSITIVE])
+    temperature_step = models.DecimalField('Шаг температуры, °C', max_digits=12, decimal_places=6, validators=[POSITIVE])
+    coefficient_snapshot = models.JSONField('Коэффициенты на момент создания', default=dict, editable=False)
+    material_name_snapshot = models.CharField('Материал на момент создания', max_length=255, editable=False)
+    created_at = models.DateTimeField('Создан', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Эксперимент'
+        verbose_name_plural = 'Эксперименты'
+        ordering = ['-created_at']
+        constraints = [
+            models.CheckConstraint(condition=models.Q(**{f'{field}__gt': 0}), name=f'exp_{field}_positive')
+            for field in ('pressure_min', 'pressure_max', 'pressure_step', 'temperature_min', 'temperature_max', 'temperature_step')
+        ] + [
+            models.CheckConstraint(condition=models.Q(**{f'{axis}_max__gt': models.F(f'{axis}_min')}), name=f'exp_{axis}_range')
+            for axis in ('pressure', 'temperature')
+        ] + [
+            models.CheckConstraint(condition=models.Q(**{f'{axis}_step__lte': models.F(f'{axis}_max') - models.F(f'{axis}_min')}), name=f'exp_{axis}_step_range')
+            for axis in ('pressure', 'temperature')
+        ]
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        for axis in ('pressure', 'temperature'):
+            minimum, maximum, step = (getattr(self, f'{axis}_{suffix}') for suffix in ('min', 'max', 'step'))
+            if any(value is not None and (not isinstance(value, (Decimal, int, float)) or not Decimal(str(value)).is_finite()) for value in (minimum, maximum, step)):
+                continue
+            if minimum is not None and maximum is not None:
+                if maximum <= minimum:
+                    errors[f'{axis}_max'] = 'Максимум должен быть больше минимума.'
+                elif step is not None and step > maximum - minimum:
+                    errors[f'{axis}_step'] = 'Шаг не должен превышать ширину диапазона.'
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            self.coefficient_snapshot = {f'a{i}': str(getattr(self.coefficients, f'a{i}')) for i in range(6)}
+            self.material_name_snapshot = self.coefficients.material.name
+        elif type(self).objects.filter(pk=self.pk).exclude(coefficients_id=self.coefficients_id).exists():
+            raise ValidationError({'coefficients': 'Для другого набора коэффициентов создайте новый эксперимент.'})
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+

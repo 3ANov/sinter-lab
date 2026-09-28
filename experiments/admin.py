@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import CoefficientSet, Material
+from .models import CoefficientSet, Experiment, Material
 
 
 @admin.register(Material)
@@ -17,4 +17,18 @@ class CoefficientSetAdmin(admin.ModelAdmin):
     list_filter = ('material',)
     search_fields = ('material__name',)
     autocomplete_fields = ('material',)
+
+
+@admin.register(Experiment)
+class ExperimentAdmin(admin.ModelAdmin):
+    list_display = ('title', 'researcher', 'coefficients', 'created_at')
+    list_filter = ('coefficients__material',)
+    search_fields = ('title', 'researcher__username')
+    autocomplete_fields = ('researcher', 'coefficients')
+    readonly_fields = ('coefficient_snapshot', 'material_name_snapshot', 'created_at')
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return self.readonly_fields + ('coefficients',)
+        return self.readonly_fields
 
