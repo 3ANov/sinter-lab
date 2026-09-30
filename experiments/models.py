@@ -97,3 +97,20 @@ class Experiment(models.Model):
     def __str__(self):
         return self.title
 
+
+class ComputationRun(models.Model):
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name='runs', verbose_name='Эксперимент')
+    input_snapshot = models.JSONField('Исходные данные расчёта')
+    results = models.JSONField('Точки расчёта', default=list, editable=False)
+    computation_seconds = models.FloatField('Время вычисления, с', validators=[MinValueValidator(0)])
+    visualization_seconds = models.FloatField('Время визуализации, с', null=True, blank=True, validators=[MinValueValidator(0)])
+    peak_memory_bytes = models.PositiveBigIntegerField('Пиковая память, байт')
+    operations_per_evaluation = models.PositiveIntegerField('Операций на одно обращение')
+    created_at = models.DateTimeField('Выполнен', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Выполнение расчёта'
+        verbose_name_plural = 'Выполнения расчётов'
+
+    def __str__(self):
+        return f'{self.experiment} — расчёт {self.pk}'

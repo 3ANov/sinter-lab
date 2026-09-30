@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import CoefficientSet, Experiment, Material
+from .models import CoefficientSet, ComputationRun, Experiment, Material
 
 
 @admin.register(Material)
@@ -32,3 +32,24 @@ class ExperimentAdmin(admin.ModelAdmin):
             return self.readonly_fields + ('coefficients',)
         return self.readonly_fields
 
+
+@admin.register(ComputationRun)
+class ComputationRunAdmin(admin.ModelAdmin):
+    list_display = ('id', 'experiment', 'researcher', 'point_count', 'created_at')
+    list_select_related = ('experiment', 'experiment__researcher')
+    list_filter = ('created_at', 'experiment__coefficients__material')
+    search_fields = ('experiment__title', 'experiment__researcher__username')
+    ordering = ('-created_at',)
+    list_per_page = 25
+    readonly_fields = tuple(field.name for field in ComputationRun._meta.fields if field.name != 'results') + ('point_count',)
+
+    @admin.display(description='Исследователь', ordering='experiment__researcher__username')
+    def researcher(self, obj):
+        return obj.experiment.researcher
+
+    @admin.display(description='Точек')
+    def point_count(self, obj):
+        return len(obj.results)
+
+    def has_add_permission(self, request):
+        return False
