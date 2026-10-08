@@ -1,27 +1,41 @@
 {% extends "experiments/base.html" %}
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-  <div>
-    <h1 class="h2">Лаборатория спекания</h1>
-    <p class="text-secondary mb-0">Стартовый проект · демонстрационные данные нагрева</p>
+<h1 class="h2">Исследование плотности твёрдого сплава</h1>
+<p class="text-secondary">Выберите материал и задайте диапазоны давления и температуры спекания.</p>
+<div class="row g-4">
+  <div class="col-lg-7">
+    <section class="card shadow-sm border-0"><div class="card-body p-4">
+      <h2 class="h5">Новый эксперимент</h2>
+      <p class="small text-secondary">Начальные значения — из контрольного примера задания. Давление в атм, температура в °C.</p>
+      <form method="post">
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endfor %}
+        <div class="row g-3">
+          {% for field in form %}
+          <div class="{% if field.name == 'title' or field.name == 'coefficients' %}col-12{% else %}col-md-4{% endif %}">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}<div class="text-danger small" role="alert">{{ error }}</div>{% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+        <button class="btn btn-primary mt-4" type="submit">Рассчитать плотность</button>
+      </form>
+    </div></section>
   </div>
-  <a class="btn btn-primary" href="{% url 'experiments:export_excel' %}">Скачать Excel</a>
+  <div class="col-lg-5">
+    <section class="card shadow-sm border-0"><div class="card-body p-4">
+      <h2 class="h5">Последние расчёты</h2>
+      <div class="list-group list-group-flush">
+      {% for run in runs %}
+        <a class="list-group-item list-group-item-action px-0" href="{% url 'experiments:results' run.pk %}">
+          <strong>{{ run.input_snapshot.title }}</strong>
+          <div class="small text-secondary">{{ run.input_snapshot.material }} · {{ run.created_at|date:"d.m.Y H:i" }}</div>
+          {% if user.is_staff %}<div class="small">{{ run.experiment.researcher }}</div>{% endif %}
+        </a>
+      {% empty %}<p class="text-secondary mb-0">Расчётов пока нет. Задайте параметры и выполните первый эксперимент.</p>{% endfor %}
+      </div>
+    </div></section>
+  </div>
 </div>
-<section class="card border-0 shadow-sm mb-4">
-  <div class="card-body">
-    <h2 class="h5">Температурный профиль</h2>
-    {{ chart|safe }}
-  </div>
-</section>
-<section class="card border-0 shadow-sm">
-  <div class="card-body">
-    <h2 class="h5">Данные графика</h2>
-    <div class="table-responsive">
-      <table class="table mb-0">
-        <thead><tr><th scope="col">Время, мин</th><th scope="col">Температура, °C</th></tr></thead>
-        <tbody>{% for time, temperature in rows %}<tr><td>{{ time }}</td><td>{{ temperature }}</td></tr>{% endfor %}</tbody>
-      </table>
-    </div>
-  </div>
-</section>
 {% endblock %}

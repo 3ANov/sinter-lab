@@ -1,28 +1,41 @@
 from io import BytesIO
 
 from django.test import TestCase
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from openpyxl import load_workbook
 
-from .views import DEMO_ROWS
 
 
-class StarterTests(TestCase):
-    def test_home_renders_chart_and_export_link(self):
+class AuthenticationTests(TestCase):
+    def test_login_and_logout(self):
+        get_user_model().objects.create_user(username="researcher", password="test-password-123")
+        self.assertEqual(self.client.get(reverse("experiments:index")).status_code, 302)
+        self.assertEqual(self.client.get(reverse("experiments:login")).status_code, 200)
+        response = self.client.post(reverse("experiments:login"), {
+            "username": "researcher", "password": "test-password-123",
+        })
+        self.assertRedirects(response, reverse("experiments:index"))
         response = self.client.get(reverse("experiments:index"))
-        self.assertContains(response, "Plotly.newPlot")
-        self.assertContains(response, reverse("experiments:export_excel"))
+        self.assertContains(response, "researcher")
+        self.assertNotContains(response, "Администрирование")
+        self.assertEqual(self.client.get(reverse("experiments:logout")).status_code, 405)
+        self.assertRedirects(self.client.post(reverse("experiments:logout")), reverse("experiments:index"), fetch_redirect_response=False)
+        self.assertNotIn("_auth_user_id", self.client.session)
 
-    def test_excel_contains_displayed_data(self):
-        response = self.client.get(reverse("experiments:export_excel"))
-        self.assertEqual(response.status_code, 200)
-        workbook = load_workbook(BytesIO(response.content))
-        rows = list(workbook.active.values)
-        self.assertEqual(rows[0], ("Время, мин", "Температура, °C"))
-        self.assertEqual(rows[1:], DEMO_ROWS)
+    def test_invalid_password_and_external_redirect(self):
+        get_user_model().objects.create_user(username="admin-test", password="test-password-123", is_staff=True)
+        response = self.client.post(reverse("experiments:login"), {
+            "username": "admin-test", "password": "wrong",
+        })
+        self.assertContains(response, "Не удалось войти")
+        self.assertNotIn("_auth_user_id", self.client.session)
+        response = self.client.post(reverse("experiments:login"), {
+            "username": "admin-test", "password": "test-password-123", "next": "https://example.com/",
+        })
+        self.assertRedirects(response, reverse("experiments:index"))
+        self.assertContains(self.client.get(reverse("experiments:index")), "Администрирование")
 
-
-from django.contrib.auth import get_user_model
 
 class ResearchModelTests(TestCase):
     def setUp(self):

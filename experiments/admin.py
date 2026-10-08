@@ -35,13 +35,13 @@ class ExperimentAdmin(admin.ModelAdmin):
 
 @admin.register(ComputationRun)
 class ComputationRunAdmin(admin.ModelAdmin):
-    list_display = ('id', 'experiment', 'researcher', 'point_count', 'created_at')
+    list_display = ('id', 'experiment', 'researcher', 'point_count', 'created_at', 'result_links')
     list_select_related = ('experiment', 'experiment__researcher')
     list_filter = ('created_at', 'experiment__coefficients__material')
     search_fields = ('experiment__title', 'experiment__researcher__username')
     ordering = ('-created_at',)
     list_per_page = 25
-    readonly_fields = tuple(field.name for field in ComputationRun._meta.fields if field.name != 'results') + ('point_count',)
+    readonly_fields = tuple(field.name for field in ComputationRun._meta.fields if field.name != 'results') + ('point_count', 'result_links')
 
     @admin.display(description='Исследователь', ordering='experiment__researcher__username')
     def researcher(self, obj):
@@ -50,6 +50,16 @@ class ComputationRunAdmin(admin.ModelAdmin):
     @admin.display(description='Точек')
     def point_count(self, obj):
         return len(obj.results)
+
+    @admin.display(description='Результаты')
+    def result_links(self, obj):
+        if not obj.pk:
+            return '—'
+        return format_html(
+            '<a href="{}">Графики и таблицы</a> · <a href="{}">Excel</a>',
+            reverse('experiments:results', args=[obj.pk]),
+            reverse('experiments:export_excel', args=[obj.pk]),
+        )
 
     def has_add_permission(self, request):
         return False

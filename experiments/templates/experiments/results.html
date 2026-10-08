@@ -1,6 +1,36 @@
 {% extends "experiments/base.html" %}
 {% block title %}Результаты · Sinter Lab{% endblock %}
 {% block content %}
-<h1 class="h2">Результаты эксперимента</h1>
-<p>Результаты появятся после подключения расчёта.</p>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div><h1 class="h2">{{ run.input_snapshot.title }}</h1><p class="text-secondary">{{ run.input_snapshot.material }}</p></div>
+  <div class="d-flex gap-2"><a class="btn btn-outline-secondary" href="{% url 'experiments:index' %}">Новый эксперимент</a><a class="btn btn-primary" href="{% url 'experiments:export_excel' run.pk %}">Скачать Excel</a></div>
+</div>
+<section class="card border-0 shadow-sm mb-4"><div class="card-body">
+  <h2 class="h5">Исходные данные</h2>
+  <p>Давление: {{ run.input_snapshot.pressure_min }}–{{ run.input_snapshot.pressure_max }} атм, шаг {{ run.input_snapshot.pressure_step }} атм.<br>
+  Температура: {{ run.input_snapshot.temperature_min }}–{{ run.input_snapshot.temperature_max }} °C, шаг {{ run.input_snapshot.temperature_step }} °C.</p>
+  <p>ρ = a₀ + a₁Pg + a₂T + a₃PgT + a₄T² + a₅PgT²</p>
+  <div class="d-flex flex-wrap gap-3 small">{% for name, value in run.input_snapshot.coefficients.items %}<span>{{ name }} = {{ value }}</span>{% endfor %}</div>
+</div></section>
+{% for section in sections %}
+<section class="card border-0 shadow-sm mb-4"><div class="card-body">
+  <h2 class="h5">{% if section.axis == 'pressure' %}Влияние давления на плотность{% else %}Влияние температуры на плотность{% endif %}</h2>
+  {{ section.chart|safe }}
+  <details><summary class="mb-3">Таблица результатов (плотность, г/см³)</summary>
+  <div class="table-responsive"><table class="table table-striped table-sm">
+    <thead><tr><th scope="col">{{ section.label }}, {{ section.unit }}</th>{% for level in section.levels %}<th scope="col">{{ section.fixed_label }} = {{ level|floatformat:"-7" }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for x, values in section.rows %}<tr><th scope="row">{{ x|floatformat:"-7" }}</th>{% for value in values %}<td>{{ value|floatformat:6 }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table></div></details>
+</div></section>
+{% endfor %}
+<section class="card border-0 shadow-sm"><div class="card-body">
+  <h2 class="h5">Экономичность модели</h2>
+  <dl class="row mb-0">
+    <dt class="col-sm-8">Время вычисления</dt><dd class="col-sm-4">{{ run.computation_seconds|floatformat:6 }} с</dd>
+    <dt class="col-sm-8">Подготовка графиков на сервере</dt><dd class="col-sm-4">{{ run.visualization_seconds|floatformat:6 }} с</dd>
+    <dt class="col-sm-8">Пиковые выделения памяти Python при расчёте</dt><dd class="col-sm-4">{{ run.peak_memory_bytes }} байт</dd>
+    <dt class="col-sm-8">Арифметических операций на одну точку</dt><dd class="col-sm-4">{{ run.operations_per_evaluation }}</dd>
+  </dl>
+  <p class="small text-secondary mb-0">Время графиков измеряется при первом открытии результатов и не включает отрисовку в браузере. Память оценивается по выделениям Python во время расчёта; параллельные запросы могут повлиять на оценку.</p>
+</div></section>
 {% endblock %}

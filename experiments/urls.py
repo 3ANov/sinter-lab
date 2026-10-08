@@ -7,5 +7,6 @@ urlpatterns = [
     path("login/", LoginView.as_view(template_name="experiments/login.html"), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("", views.index, name="index"),
-    path("export/", views.export_excel, name="export_excel"),
+    path("results/<int:pk>/", views.results, name="results"),
+    path("results/<int:pk>/export/", views.export_excel, name="export_excel"),
 ]
