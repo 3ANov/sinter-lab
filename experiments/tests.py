@@ -107,3 +107,50 @@ class DensityCalculationTests(TestCase):
             calculate_density(60, 1400, coefficients)
 
 
+class ResearchInterfaceTests(TestCase):
+    def setUp(self):
+        from .models import CoefficientSet
+        self.user = get_user_model().objects.create_user(username='owner')
+        self.client.force_login(self.user)
+        self.data = dict(title='Контрольный опыт', coefficients=CoefficientSet.objects.get(version=1).pk,
+                         pressure_min=40, pressure_max=80, pressure_step=2,
+                         temperature_min=1300, temperature_max=1500, temperature_step=10)
+
+    def test_calculation_results_export_and_access(self):
+        from .models import ComputationRun
+        response = self.client.post(reverse('experiments:index'), self.data)
+        run = ComputationRun.objects.get()
+        self.assertRedirects(response, reverse('experiments:results', args=[run.pk]))
+        self.assertEqual(len(run.results), 117)
+        response = self.client.get(reverse('experiments:results', args=[run.pk]))
+        self.assertEqual(response.content.count(b'class="plotly-graph-div"'), 2)
+        self.assertContains(response, '14,882200')
+        export_url = reverse('experiments:export_excel', args=[run.pk])
+        workbook = load_workbook(BytesIO(self.client.get(export_url).content))
+        self.assertEqual(workbook['Давление'].max_row, 22)
+        self.assertAlmostEqual(workbook['Давление']['B2'].value, 14.8822)
+        self.assertEqual(len(workbook['Температура']._charts), 1)
+        other = get_user_model().objects.create_user(username='other')
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(response.request['PATH_INFO']).status_code, 404)
+        self.assertEqual(self.client.get(export_url).status_code, 404)
+        other.is_staff = True
+        other.save()
+        self.assertEqual(self.client.get(export_url).status_code, 200)
+
+    def test_invalid_and_excessive_ranges_do_not_save(self):
+        from .models import Experiment
+        for value in ['0', '-1', 'abc', '', '0.000001', '50']:
+            response = self.client.post(reverse('experiments:index'), {**self.data, 'pressure_step': value})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context['form'].errors)
+        self.assertFalse(Experiment.objects.exists())
+
+    def test_uneven_steps_include_endpoints_and_midpoints(self):
+        from .models import ComputationRun
+        from .services.research import result_sections
+        self.client.post(reverse('experiments:index'), {**self.data, 'pressure_step': 7, 'temperature_step': 30})
+        sections = result_sections(ComputationRun.objects.get())
+        self.assertEqual(sections[0]['rows'][-1][0], 80)
+        self.assertEqual(sections[1]['rows'][-1][0], 1500)
+        self.assertEqual(sections[0]['levels'][1], 1400)
