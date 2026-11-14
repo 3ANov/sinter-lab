@@ -4,25 +4,39 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Material',
+            name="Material",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255, unique=True, verbose_name='Тип материала')),
-                ('description', models.TextField(blank=True, verbose_name='Описание состава')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        max_length=255, unique=True, verbose_name="Тип материала"
+                    ),
+                ),
+                (
+                    "description",
+                    models.TextField(blank=True, verbose_name="Описание состава"),
+                ),
             ],
             options={
-                'verbose_name': 'Материал',
-                'verbose_name_plural': 'Материалы',
-                'indexes': [],
-                'constraints': [],
+                "verbose_name": "Материал",
+                "verbose_name_plural": "Материалы",
+                "indexes": [],
+                "constraints": [],
             },
         ),
     ]

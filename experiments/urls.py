@@ -4,7 +4,11 @@ from . import views
 
 app_name = "experiments"
 urlpatterns = [
-    path("login/", LoginView.as_view(template_name="experiments/login.html"), name="login"),
+    path(
+        "login/",
+        LoginView.as_view(template_name="experiments/login.html"),
+        name="login",
+    ),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("", views.index, name="index"),
     path("results/<int:pk>/", views.results, name="results"),
