@@ -43,6 +43,7 @@ def results(request, pk):
     run = get_object_or_404(visible_runs(request.user), pk=pk)
     sections = result_sections(run)
     started = perf_counter()
+    chart_config = {"responsive": True, "displaylogo": False}
     for index, section in enumerate(sections):
         figure = go.Figure()
         for column, level in enumerate(section["levels"]):
@@ -63,8 +64,38 @@ def results(request, pk):
         section["chart"] = figure.to_html(
             full_html=False,
             include_plotlyjs=index == 0,
-            config={"responsive": True, "displaylogo": False},
+            config=chart_config,
         )
+
+    temperature_section = sections[1]
+    surface = go.Figure(
+        go.Surface(
+            x=[float(p) for p in temperature_section["levels"]],
+            y=[float(t) for t, _ in temperature_section["rows"]],
+            z=[
+                [float(density) for density in values]
+                for _, values in temperature_section["rows"]
+            ],
+            colorscale="Viridis",
+            colorbar=dict(title="г/см³"),
+            hovertemplate=(
+                "Давление: %{x} атм<br>Температура: %{y} °C<br>"
+                "Плотность: %{z:.6f} г/см³<extra></extra>"
+            ),
+        )
+    )
+    surface.update_layout(
+        template="plotly_white",
+        scene=dict(
+            xaxis_title="Давление, атм",
+            yaxis_title="Температура, °C",
+            zaxis_title="Плотность, г/см³",
+        ),
+        margin=dict(l=0, r=0, t=20, b=0),
+    )
+    surface_chart = surface.to_html(
+        full_html=False, include_plotlyjs=False, config=chart_config
+    )
     elapsed = perf_counter() - started
     if run.visualization_seconds is None:
         ComputationRun.objects.filter(
@@ -72,7 +103,9 @@ def results(request, pk):
         ).update(visualization_seconds=elapsed)
         run.refresh_from_db()
     return render(
-        request, "experiments/results.html", {"run": run, "sections": sections}
+        request,
+        "experiments/results.html",
+        {"run": run, "sections": sections, "surface_chart": surface_chart},
     )
 
 
